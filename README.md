@@ -148,7 +148,7 @@ pm2 logs torrent-site
 pm2 restart torrent-site
 ```
 
-### Full copy-paste block (matches your repo layout — index.html at root)
+### Full copy-paste block
 ```bash
 sudo apt update && sudo apt upgrade -y
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
