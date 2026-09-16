@@ -77,10 +77,16 @@ npm -v
 ### 3. Clone the repo
 ```bash
 cd ~
-git clone https://github.com/<your-username>/torrent.git
+git clone https://github.com/suren212/torrent.git
 cd torrent
 ```
 If your project files sit inside a subfolder in the repo (e.g. `torrent-site/`), `cd` into that folder instead — check with `ls -la` first.
+
+**Note:** if your repo has `index.html` sitting directly next to `server.js` (not inside a `public/` folder), move it before running the app, since `server.js` expects it at `public/index.html`:
+```bash
+mkdir -p public
+mv index.html public/index.html
+```
 
 ### 4. Install dependencies
 ```bash
@@ -142,7 +148,7 @@ pm2 logs torrent-site
 pm2 restart torrent-site
 ```
 
-### Full copy-paste block (once you've confirmed repo layout and security group)
+### Full copy-paste block (matches your repo layout — index.html at root)
 ```bash
 sudo apt update && sudo apt upgrade -y
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -150,6 +156,8 @@ sudo apt install -y nodejs git
 cd ~
 git clone https://github.com/<your-username>/torrent.git
 cd torrent
+mkdir -p public
+mv index.html public/index.html
 npm install
 sudo npm install -g pm2
 sudo pm2 start server.js --name torrent-site
