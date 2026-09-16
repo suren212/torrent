@@ -1,0 +1,14 @@
+{
+  "name": "torrent-download-site",
+  "version": "1.0.0",
+  "description": "Simple web UI to download torrents (via .torrent file or magnet link) into a local Download folder.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.0.0",
+    "webtorrent": "^1.9.7"
+  }
+}
