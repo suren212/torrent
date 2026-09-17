@@ -20,6 +20,7 @@ const archiver = require('archiver');
 const WebTorrent = require('webtorrent');
 
 const PORT = process.env.PORT || 80;
+const TORRENT_PORT = process.env.TORRENT_PORT ? Number(process.env.TORRENT_PORT) : 55000;
 const DOWNLOAD_DIR = path.join(__dirname, 'Download');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const TMP_UPLOAD_DIR = path.join(__dirname, 'tmp_uploads');
@@ -30,7 +31,21 @@ const TMP_UPLOAD_DIR = path.join(__dirname, 'tmp_uploads');
 });
 
 const app = express();
-const client = new WebTorrent();
+// Fixed torrentPort so it can be opened in the firewall/security group for
+// incoming peer connections (otherwise WebTorrent picks a random port each
+// run and almost all peers trying to connect to you get blocked).
+// maxConns raises the ceiling on simultaneous peer connections per torrent
+// (WebTorrent's default is quite low, ~55) — a datacenter box with real
+// bandwidth benefits from talking to far more peers at once.
+// uploadLimit -1 = unthrottled uploading, which keeps you attractive to
+// peers under tit-for-tat sharing (choked uploaders get choked back).
+const client = new WebTorrent({
+  torrentPort: TORRENT_PORT,
+  dhtPort: TORRENT_PORT,
+  maxConns: 500,
+  uploadLimit: -1,
+  downloadLimit: -1,
+});
 const upload = multer({ dest: TMP_UPLOAD_DIR });
 
 app.use(express.json());
@@ -85,6 +100,23 @@ function registerTorrent(torrent) {
 function alreadyAdded(infoHash) {
   return client.torrents.some((t) => t.infoHash === infoHash);
 }
+
+// Extra well-known, reliable public trackers. Announcing to more trackers
+// means the swarm gets discovered and populated much faster (this is a big
+// part of why a well-configured box reaches full peer count in seconds
+// instead of minutes) — WebTorrent merges these with whatever the magnet
+// link or .torrent file already specifies.
+const EXTRA_TRACKERS = [
+  'udp://tracker.opentrackr.org:1337/announce',
+  'udp://tracker.openbittorrent.com:6969/announce',
+  'udp://open.stealth.si:80/announce',
+  'udp://exodus.desync.com:6969/announce',
+  'udp://tracker.torrent.eu.org:451/announce',
+  'udp://explodie.org:6969/announce',
+  'udp://tracker.tiny-vps.com:6969/announce',
+  'wss://tracker.openwebtorrent.com',
+  'wss://tracker.btorrent.xyz',
+];
 
 // Recursively walk DOWNLOAD_DIR and build a tree of files/folders.
 // Each node's "relPath" is safe to hand back to the client and to
@@ -145,7 +177,7 @@ app.post('/api/add-magnet', (req, res) => {
   }
 
   try {
-    const torrent = client.add(magnet.trim(), { path: DOWNLOAD_DIR });
+    const torrent = client.add(magnet.trim(), { path: DOWNLOAD_DIR, maxWebConns: 8, announce: EXTRA_TRACKERS });
     registerTorrent(torrent);
     res.json({ ok: true, infoHash: torrent.infoHash });
   } catch (err) {
@@ -162,7 +194,7 @@ app.post('/api/add-file', upload.single('torrentFile'), (req, res) => {
   const filePath = req.file.path;
 
   try {
-    const torrent = client.add(fs.readFileSync(filePath), { path: DOWNLOAD_DIR }, (t) => {
+    const torrent = client.add(fs.readFileSync(filePath), { path: DOWNLOAD_DIR, maxWebConns: 8, announce: EXTRA_TRACKERS }, (t) => {
       // cleanup temp upload once parsed
       fs.unlink(filePath, () => {});
     });
