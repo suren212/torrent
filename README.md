@@ -203,7 +203,7 @@ sudo apt update && sudo apt upgrade -y
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs git
 cd ~
-git clone https://github.com/<your-username>/torrent.git
+git clone https://github.com/suren212/torrent.git
 cd torrent
 mkdir -p public
 mv index.html public/index.html
