@@ -8,11 +8,10 @@ file, and a **Download .zip** button for each folder.
 
 ## Folder structure
 ```
-torrent-site/
+torrent/
 ├── server.js         # Express + WebTorrent backend
+├── index.html         # Web UI (self-contained, no public/ folder needed)
 ├── package.json
-├── public/
-│   └── index.html     # Web UI
 └── Download/           # Downloaded files land here
 ```
 
@@ -55,17 +54,18 @@ Then open `http://<your-server-ip>/` (or `:8080` if not using port 80 directly).
 
 Torrent speed depends on how many peers you can actually connect to. A few things commonly cause slow speeds:
 
-1. **The peer port is blocked (most common cause on EC2).** By default WebTorrent picks a random port each run, and EC2's security group blocks everything except what you've explicitly opened (port 80 for the web UI). That means almost all incoming peer connections get rejected. This app now binds WebTorrent to a **fixed port** (`55000` by default, both TCP and UDP, used for DHT + peer connections) so you can open exactly that port. **Open it in your EC2 Security Group**:
+1. **The peer port is blocked (most common cause on EC2).** By default WebTorrent picks a random port each run, and EC2's security group blocks everything except what you've explicitly opened (port 80 for the web UI). That means almost all incoming peer connections get rejected. This app binds WebTorrent to **fixed ports** — `TORRENT_PORT` (default `55000`, TCP+UDP, for peer connections) and `TORRENT_PORT + 1` (`55001`, UDP, for DHT peer discovery) — so you can open exactly those. **Open them in your EC2 Security Group**:
    - Type: **Custom TCP**, Port: **55000**, Source: **0.0.0.0/0**
    - Type: **Custom UDP**, Port: **55000**, Source: **0.0.0.0/0**
+   - Type: **Custom UDP**, Port: **55001**, Source: **0.0.0.0/0**
 
-   To use a different port, set `TORRENT_PORT` when starting the app (and open that port instead):
+   To use a different port, set `TORRENT_PORT` when starting the app (and open that port + the next one up instead):
    ```bash
    TORRENT_PORT=55000 PORT=80 sudo -E node server.js
    ```
    With pm2:
    ```bash
-   TORRENT_PORT=55000 pm2 start server.js --name torrent-site
+   sudo TORRENT_PORT=55000 pm2 start server.js --name torrent-site
    ```
 
 2. **The torrent itself has few seeders.** No amount of configuration fixes a torrent with 1–2 slow seeders. Test with a well-seeded public torrent (e.g. an official Linux distro's magnet link) to check whether the app/server is the bottleneck or the specific torrent is.
@@ -87,10 +87,11 @@ A commercial seedbox is fast mainly because it's sitting on real, unthrottled da
   ```bash
   aws ec2 modify-volume --volume-id <your-volume-id> --volume-type gp3 --throughput 250 --iops 6000
   ```
-- **Both TCP and UDP on the torrent port must be open**, in both the Security Group *and* the OS firewall if you've enabled `ufw`:
+- **Both TCP and UDP on the torrent port, plus UDP on the DHT port, must be open**, in both the Security Group *and* the OS firewall if you've enabled `ufw`:
   ```bash
   sudo ufw allow 55000/tcp
   sudo ufw allow 55000/udp
+  sudo ufw allow 55001/udp
   ```
 - **Pick a region close to where most seeders are** — cross-continent hops add latency that limits how many pieces you can request in flight. `us-east-1` and `eu-west-1` tend to have the best general peering for public swarms.
 - **This app now announces to a larger set of public trackers automatically** (added in `server.js`), so torrents should go from "peering" to actively downloading in seconds rather than minutes, and reach a fuller swarm (`maxConns: 500`) than most desktop clients default to.
@@ -129,27 +130,27 @@ cd torrent
 ```
 If your project files sit inside a subfolder in the repo (e.g. `torrent-site/`), `cd` into that folder instead — check with `ls -la` first.
 
-**Note:** if your repo has `index.html` sitting directly next to `server.js` (not inside a `public/` folder), move it before running the app, since `server.js` expects it at `public/index.html`:
-```bash
-mkdir -p public
-mv index.html public/index.html
-```
-
 ### 4. Install dependencies
 ```bash
 npm install
 ```
 
-### 5. Confirm the `public/index.html` file is present
+### 5. Confirm `index.html` is directly next to `server.js`
 ```bash
 ls -la
-ls -la public
 ```
-You should see `server.js`, `package.json`, and `public/index.html`. If `index.html` is missing or misnamed (e.g. `index (1).html` sitting in the project root instead of inside `public/`), fix it with:
+You should see `server.js`, `index.html`, and `package.json` all at the same level — **no `public/` folder**. If you see `index.html` missing here but a `public/` folder still exists (leftover from an older version of this project, or from re-cloning an old copy), fix it:
 ```bash
-mkdir -p public
-mv "index (1).html" public/index.html
+mv public/index.html ./index.html
+rmdir public
 ```
+If instead `index.html` is missing entirely and there's no `public/` folder either, it wasn't copied into the repo — re-add it from your source and commit/push, or copy it in manually.
+
+If you see this error when starting the app:
+```
+Error: ENOENT: no such file or directory, stat '/home/ubuntu/torrent/index.html'
+```
+it means the same thing — `index.html` isn't at the project root yet. Run the `ls -la` check above to see where it actually is.
 
 ### 6. Free up port 80 if needed
 Ubuntu EC2 AMIs don't run anything on port 80 by default, but if you see `EADDRINUSE` later:
@@ -158,16 +159,17 @@ sudo lsof -i :80
 sudo kill <PID>          # or: sudo systemctl stop nginx / apache2
 ```
 
-### 7. Open port 80 (web UI) and the torrent peer port in the EC2 Security Group
+### 7. Open port 80 (web UI) and the torrent ports in the EC2 Security Group
 In the AWS Console: **EC2 → Instances → your instance → Security tab → click the security group → Edit inbound rules** → add:
 - Type: **HTTP**, Port: **80**, Source: **0.0.0.0/0** (or restrict to your own IP for safety)
 - Type: **Custom TCP**, Port: **55000**, Source: **0.0.0.0/0** (torrent peer connections — needed for good speed)
-- Type: **Custom UDP**, Port: **55000**, Source: **0.0.0.0/0** (torrent DHT/peer discovery — needed for good speed)
+- Type: **Custom UDP**, Port: **55000**, Source: **0.0.0.0/0** (torrent peer connections — needed for good speed)
+- Type: **Custom UDP**, Port: **55001**, Source: **0.0.0.0/0** (DHT peer discovery — needed for good speed)
 
 ### 8. Run the server
 Quick test run (stops when you close the terminal):
 ```bash
-sudo node server.js
+sudo TORRENT_PORT=55000 node server.js
 ```
 Expected output:
 ```
@@ -184,7 +186,7 @@ Visit `http://<that-ip>/` in your browser.
 ### 10. Keep it running permanently with pm2
 ```bash
 sudo npm install -g pm2
-sudo pm2 start server.js --name torrent-site
+sudo TORRENT_PORT=55000 pm2 start server.js --name torrent-site
 pm2 save
 pm2 startup
 ```
@@ -193,11 +195,16 @@ pm2 startup
 To check status / logs / restart later:
 ```bash
 pm2 status
-pm2 logs torrent-site
-pm2 restart torrent-site
+pm2 logs torrent-site --lines 30 --nostream
 ```
+- If `pm2 status` shows `torrent-site` already listed → use `pm2 restart torrent-site` to apply changes (e.g. after moving `index.html` or pulling new code).
+- If `pm2 status` shows nothing, or `pm2 restart torrent-site` errors with `Process or Namespace torrent-site not found` → there's no process to restart yet. Start it fresh instead:
+  ```bash
+  sudo TORRENT_PORT=55000 pm2 start server.js --name torrent-site
+  pm2 save
+  ```
 
-### Full copy-paste block (matches your repo layout — index.html at root)
+### Full copy-paste block (flat layout — index.html at project root)
 ```bash
 sudo apt update && sudo apt upgrade -y
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -205,8 +212,6 @@ sudo apt install -y nodejs git
 cd ~
 git clone https://github.com/suren212/torrent.git
 cd torrent
-mkdir -p public
-mv index.html public/index.html
 npm install
 sudo npm install -g pm2
 sudo TORRENT_PORT=55000 pm2 start server.js --name torrent-site
@@ -214,7 +219,7 @@ pm2 save
 pm2 startup
 curl -s ifconfig.me
 ```
-Then open `http://<printed-ip>/` in your browser, and make sure ports **80** (TCP), **55000** (TCP), and **55000** (UDP) are all open in your EC2 security group — see step 7 above for the torrent-speed reasoning.
+Then open `http://<printed-ip>/` in your browser, and make sure ports **80** (TCP), **55000** (TCP), **55000** (UDP), and **55001** (UDP) are all open in your EC2 security group — see step 7 above for the torrent-speed reasoning.
 
 ### Security reminder
 Running this on a public IP with port 80 open and no login means **anyone** who finds the address can add torrents and download everything sitting in your `Download` folder, using your server's bandwidth/disk. Restrict the security group to your own IP, or add authentication, unless this is meant to be fully public.
