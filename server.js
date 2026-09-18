@@ -34,6 +34,9 @@ const app = express();
 // Fixed torrentPort so it can be opened in the firewall/security group for
 // incoming peer connections (otherwise WebTorrent picks a random port each
 // run and almost all peers trying to connect to you get blocked).
+// dhtPort MUST be a different number from torrentPort — WebTorrent opens a
+// separate UDP socket for each, and reusing the same port number makes the
+// second bind fail with EADDRINUSE, which used to crash the whole process.
 // maxConns raises the ceiling on simultaneous peer connections per torrent
 // (WebTorrent's default is quite low, ~55) — a datacenter box with real
 // bandwidth benefits from talking to far more peers at once.
@@ -41,11 +44,20 @@ const app = express();
 // peers under tit-for-tat sharing (choked uploaders get choked back).
 const client = new WebTorrent({
   torrentPort: TORRENT_PORT,
-  dhtPort: TORRENT_PORT,
+  dhtPort: TORRENT_PORT + 1,
   maxConns: 500,
   uploadLimit: -1,
   downloadLimit: -1,
 });
+
+// Without this handler, any low-level socket error (e.g. a port still being
+// released from a previous run) is an *unhandled* 'error' event, which Node
+// treats as fatal and crashes the process. Logging it here keeps the web
+// server itself up even if peer networking hits a transient issue.
+client.on('error', (err) => {
+  console.error('[WebTorrent client error]', err && err.message ? err.message : err);
+});
+
 const upload = multer({ dest: TMP_UPLOAD_DIR });
 
 app.use(express.json());
