@@ -5,6 +5,13 @@
  * - Downloads the content into ./Download (next to this server + index.html)
  * - Serves a simple web UI on PORT (default 80)
  *
+ * Flat folder structure — no "public" subfolder needed:
+ *   torrent/
+ *   ├── server.js
+ *   ├── index.html
+ *   ├── package.json
+ *   └── Download/
+ *
  * Run:
  *   npm install
  *   sudo node server.js      # port 80 needs root/admin on Linux
@@ -22,7 +29,6 @@ const WebTorrent = require('webtorrent');
 const PORT = process.env.PORT || 80;
 const TORRENT_PORT = process.env.TORRENT_PORT ? Number(process.env.TORRENT_PORT) : 55000;
 const DOWNLOAD_DIR = path.join(__dirname, 'Download');
-const PUBLIC_DIR = path.join(__dirname, 'public');
 const TMP_UPLOAD_DIR = path.join(__dirname, 'tmp_uploads');
 
 // Ensure required folders exist
@@ -61,7 +67,16 @@ client.on('error', (err) => {
 const upload = multer({ dest: TMP_UPLOAD_DIR });
 
 app.use(express.json());
-app.use(express.static(PUBLIC_DIR)); // serves index.html etc.
+
+// Simple flat layout: index.html sits right next to server.js — no
+// separate "public" folder needed. index.html is fully self-contained
+// (its CSS/JS are inline), so this one route is all static serving needs.
+// Deliberately NOT using express.static(__dirname) here — that would also
+// expose server.js, package.json, node_modules, and the Download folder's
+// raw files to anyone who guesses the URL.
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // In-memory registry of active/completed torrents for the UI to poll
 const torrents = {}; // infoHash -> { name, progress, downloaded, total, done, files, addedAt }
