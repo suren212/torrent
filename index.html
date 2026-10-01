@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+/>
+
 <title>Torrent Downloader</title>
+
 <style>
   :root {
     --bg: #0f172a;
@@ -15,299 +20,1602 @@
     --green: #22c55e;
     --red: #f87171;
   }
-  * { box-sizing: border-box; }
+
+  * {
+    box-sizing: border-box;
+  }
+
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+
     background: var(--bg);
     color: var(--text);
+
     padding: 2rem 1rem;
   }
-  .container { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
-  p.subtitle { color: var(--muted); margin-top: 0; margin-bottom: 1.5rem; }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.25rem;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+  }
+
+  p.subtitle {
+    color: var(--muted);
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  code {
+    color: var(--accent);
+  }
+
   .card {
     background: var(--card);
     border-radius: 12px;
+
     padding: 1.25rem;
     margin-bottom: 1.5rem;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+
+    box-shadow:
+      0 4px 14px rgba(0, 0, 0, 0.3);
   }
-  label { display: block; font-size: 0.9rem; margin-bottom: 0.4rem; color: var(--muted); }
-  input[type="text"], input[type="file"] {
+
+  label {
+    display: block;
+
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+
+    color: var(--muted);
+  }
+
+  input[type="text"],
+  input[type="file"] {
     width: 100%;
+
     padding: 0.6rem 0.7rem;
+
     border-radius: 8px;
     border: 1px solid #334155;
+
     background: #0b1220;
     color: var(--text);
+
     font-size: 0.95rem;
   }
-  .row { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
-  .row > div { flex: 1; min-width: 220px; }
+
+  .row {
+    display: flex;
+    gap: 0.75rem;
+
+    margin-bottom: 1rem;
+
+    flex-wrap: wrap;
+  }
+
+  .row > div {
+    flex: 1;
+    min-width: 220px;
+  }
+
   button {
     background: var(--accent-dark);
     color: white;
+
     border: none;
+
     padding: 0.6rem 1.1rem;
+
     border-radius: 8px;
+
     cursor: pointer;
+
     font-size: 0.95rem;
-    transition: background 0.15s;
+
+    transition:
+      background 0.15s,
+      transform 0.1s;
   }
-  button:hover { background: var(--accent); }
-  .status { font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2em; }
-  .status.ok { color: var(--green); }
-  .status.err { color: var(--red); }
+
+  button:hover {
+    background: var(--accent);
+  }
+
+  button:active {
+    transform: scale(0.98);
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .status {
+    font-size: 0.85rem;
+
+    margin-top: 0.5rem;
+
+    min-height: 1.2em;
+  }
+
+  .status.ok {
+    color: var(--green);
+  }
+
+  .status.err {
+    color: var(--red);
+  }
+
+  /*
+   * Torrent cards
+   */
 
   .torrent-item {
     background: var(--card);
+
     border-radius: 10px;
+
     padding: 1rem;
+
     margin-bottom: 0.75rem;
   }
-  .torrent-item .name { font-weight: 600; margin-bottom: 0.4rem; word-break: break-all; }
+
+  .torrent-item .name {
+    font-weight: 600;
+
+    margin-bottom: 0.4rem;
+
+    word-break: break-all;
+  }
+
   .progress-bar {
     background: #0b1220;
+
     border-radius: 6px;
+
     overflow: hidden;
+
     height: 10px;
+
     margin: 0.4rem 0;
   }
-  .progress-fill {
-    background: linear-gradient(90deg, var(--accent-dark), var(--accent));
-    height: 100%;
-    transition: width 0.3s ease;
-  }
-  .meta { font-size: 0.8rem; color: var(--muted); display: flex; justify-content: space-between; }
-  .files { margin-top: 0.5rem; font-size: 0.8rem; color: var(--muted); }
-  .files ul { margin: 0.3rem 0 0; padding-left: 1.1rem; }
-  .remove-btn { background: transparent; color: var(--red); border: 1px solid var(--red); padding: 0.3rem 0.6rem; font-size: 0.8rem; }
-  .remove-btn:hover { background: rgba(248,113,113,0.1); }
-  .empty { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 1rem 0; }
 
-  .tree-node { margin-bottom: 0.15rem; }
+  .progress-fill {
+    background:
+      linear-gradient(
+        90deg,
+        var(--accent-dark),
+        var(--accent)
+      );
+
+    height: 100%;
+
+    transition:
+      width 0.3s ease;
+  }
+
+  .meta {
+    font-size: 0.8rem;
+
+    color: var(--muted);
+
+    display: flex;
+
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    flex-wrap: wrap;
+  }
+
+  .files {
+    margin-top: 0.5rem;
+
+    font-size: 0.8rem;
+
+    color: var(--muted);
+  }
+
+  .files ul {
+    margin: 0.3rem 0 0;
+
+    padding-left: 1.1rem;
+  }
+
+  .remove-btn {
+    background: transparent;
+
+    color: var(--red);
+
+    border: 1px solid var(--red);
+
+    padding: 0.3rem 0.6rem;
+
+    font-size: 0.8rem;
+  }
+
+  .remove-btn:hover {
+    background:
+      rgba(248, 113, 113, 0.1);
+  }
+
+  .empty {
+    color: var(--muted);
+
+    font-size: 0.9rem;
+
+    text-align: center;
+
+    padding: 1rem 0;
+  }
+
+  /*
+   * File browser
+   */
+
+  .tree-node {
+    margin-bottom: 0.15rem;
+  }
+
   .tree-row {
     display: flex;
+
     align-items: center;
+
     justify-content: space-between;
+
+    gap: 0.5rem;
+
     padding: 0.45rem 0.5rem;
+
     border-radius: 6px;
   }
-  .tree-row:hover { background: rgba(255,255,255,0.04); }
-  .tree-label { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
-  .tree-label .icon { flex-shrink: 0; }
-  .tree-label .fname { word-break: break-all; }
-  .tree-size { color: var(--muted); font-size: 0.78rem; margin-right: 0.6rem; white-space: nowrap; }
-  .tree-children { margin-left: 1.4rem; border-left: 1px dashed #334155; padding-left: 0.6rem; }
-  .download-link {
-    background: var(--accent-dark);
-    color: white;
-    text-decoration: none;
-    padding: 0.3rem 0.7rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
+
+  .tree-row:hover {
+    background:
+      rgba(255, 255, 255, 0.04);
+  }
+
+  .tree-label {
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.5rem;
+
+    min-width: 0;
+  }
+
+  .tree-label .icon {
+    flex-shrink: 0;
+  }
+
+  .tree-label .fname {
+    word-break: break-all;
+  }
+
+  .tree-size {
+    color: var(--muted);
+
+    font-size: 0.78rem;
+
+    margin-right: 0.6rem;
+
     white-space: nowrap;
   }
-  .download-link:hover { background: var(--accent); }
-  .refresh-row { display:flex; justify-content:flex-end; margin-bottom:0.5rem; }
-  .refresh-row button { font-size:0.8rem; padding:0.35rem 0.8rem; }
+
+  .tree-children {
+    margin-left: 1.4rem;
+
+    border-left:
+      1px dashed #334155;
+
+    padding-left: 0.6rem;
+  }
+
+  .download-link {
+    background: var(--accent-dark);
+
+    color: white;
+
+    text-decoration: none;
+
+    padding: 0.3rem 0.7rem;
+
+    border-radius: 6px;
+
+    font-size: 0.8rem;
+
+    white-space: nowrap;
+  }
+
+  .download-link:hover {
+    background: var(--accent);
+  }
+
+  .refresh-row {
+    display: flex;
+
+    justify-content: flex-end;
+
+    margin-bottom: 0.5rem;
+  }
+
+  .refresh-row button {
+    font-size: 0.8rem;
+
+    padding:
+      0.35rem 0.8rem;
+  }
+
+  /*
+   * Download information
+   */
+
+  .download-info {
+    margin-top: 0.5rem;
+
+    padding: 0.65rem;
+
+    background: #0b1220;
+
+    border-radius: 8px;
+
+    display: none;
+  }
+
+  .download-info.active {
+    display: block;
+  }
+
+  .download-info-title {
+    font-size: 0.85rem;
+
+    font-weight: 600;
+
+    word-break: break-all;
+
+    margin-bottom: 0.35rem;
+  }
+
+  .download-info-meta {
+    display: flex;
+
+    justify-content: space-between;
+
+    gap: 0.5rem;
+
+    flex-wrap: wrap;
+
+    color: var(--muted);
+
+    font-size: 0.78rem;
+  }
+
+  .download-progress {
+    width: 100%;
+
+    height: 7px;
+
+    background: #1e293b;
+
+    border-radius: 5px;
+
+    overflow: hidden;
+
+    margin-top: 0.45rem;
+  }
+
+  .download-progress-fill {
+    height: 100%;
+
+    width: 0%;
+
+    background: var(--accent);
+
+    transition:
+      width 0.15s linear;
+  }
+
+  /*
+   * Mobile
+   */
+
+  @media (max-width: 600px) {
+    body {
+      padding:
+        1rem 0.6rem;
+    }
+
+    .container {
+      width: 100%;
+    }
+
+    .tree-row {
+      align-items: flex-start;
+    }
+
+    .tree-size {
+      display: none;
+    }
+
+    .download-link {
+      padding:
+        0.35rem 0.55rem;
+    }
+  }
 </style>
 </head>
+
 <body>
+
 <div class="container">
+
   <h1>🧲 Torrent Downloader</h1>
-  <p class="subtitle">Add a magnet link or upload a .torrent file. Files are saved to the <code>Download</code> folder on the server.</p>
+
+  <p class="subtitle">
+    Add a magnet link or upload a .torrent file.
+    Files are saved to the
+    <code>Download</code>
+    folder on the server.
+  </p>
+
+  <!--
+    -------------------------------------------------------
+    ADD TORRENT
+    -------------------------------------------------------
+  -->
 
   <div class="card">
-    <label for="magnetInput">Magnet link</label>
-    <div class="row">
-      <div><input type="text" id="magnetInput" placeholder="magnet:?xt=urn:btih:..." /></div>
-      <button id="addMagnetBtn">Add Magnet</button>
-    </div>
-    <div class="status" id="magnetStatus"></div>
 
-    <hr style="border-color:#334155; margin: 1.25rem 0;" />
+    <label for="magnetInput">
+      Magnet link
+    </label>
 
-    <label for="fileInput">.torrent file</label>
     <div class="row">
-      <div><input type="file" id="fileInput" accept=".torrent" /></div>
-      <button id="addFileBtn">Upload & Add</button>
+
+      <div>
+        <input
+          type="text"
+          id="magnetInput"
+          placeholder="magnet:?xt=urn:btih:..."
+        />
+      </div>
+
+      <button id="addMagnetBtn">
+        Add Magnet
+      </button>
+
     </div>
-    <div class="status" id="fileStatus"></div>
+
+    <div
+      class="status"
+      id="magnetStatus">
+    </div>
+
+    <hr
+      style="
+        border-color:#334155;
+        margin:1.25rem 0;
+      "
+    />
+
+    <label for="fileInput">
+      .torrent file
+    </label>
+
+    <div class="row">
+
+      <div>
+        <input
+          type="file"
+          id="fileInput"
+          accept=".torrent"
+        />
+      </div>
+
+      <button id="addFileBtn">
+        Upload & Add
+      </button>
+
+    </div>
+
+    <div
+      class="status"
+      id="fileStatus">
+    </div>
+
   </div>
 
-  <h2 style="font-size:1.1rem;">Downloads</h2>
-  <div id="torrentList"></div>
+  <!--
+    -------------------------------------------------------
+    TORRENTS
+    -------------------------------------------------------
+  -->
 
-  <h2 style="font-size:1.1rem; margin-top:2rem;">Files in Download folder</h2>
-  <div class="card" id="filesCard">
-    <div class="refresh-row"><button id="refreshFilesBtn">Refresh</button></div>
-    <div id="fileTree"></div>
+  <h2>
+    Downloads
+  </h2>
+
+  <div id="torrentList">
   </div>
+
+  <!--
+    -------------------------------------------------------
+    ACTIVE HTTP DOWNLOAD
+    -------------------------------------------------------
+  -->
+
+  <div
+    id="downloadInfo"
+    class="download-info"
+  >
+
+    <div
+      id="downloadTitle"
+      class="download-info-title">
+    </div>
+
+    <div class="download-info-meta">
+
+      <span id="downloadProgressText">
+        Starting...
+      </span>
+
+      <span id="downloadSpeedText">
+        0 MB/s
+      </span>
+
+      <span id="downloadEtaText">
+        --
+      </span>
+
+    </div>
+
+    <div class="download-progress">
+
+      <div
+        id="downloadProgressFill"
+        class="download-progress-fill">
+      </div>
+
+    </div>
+
+  </div>
+
+  <!--
+    -------------------------------------------------------
+    FILES
+    -------------------------------------------------------
+  -->
+
+  <h2
+    style="margin-top:2rem;"
+  >
+    Files in Download folder
+  </h2>
+
+  <div
+    class="card"
+    id="filesCard"
+  >
+
+    <div class="refresh-row">
+
+      <button
+        id="refreshFilesBtn"
+      >
+        Refresh
+      </button>
+
+    </div>
+
+    <div id="fileTree">
+    </div>
+
+  </div>
+
 </div>
 
 <script>
-const magnetInput = document.getElementById('magnetInput');
-const addMagnetBtn = document.getElementById('addMagnetBtn');
-const magnetStatus = document.getElementById('magnetStatus');
 
-const fileInput = document.getElementById('fileInput');
-const addFileBtn = document.getElementById('addFileBtn');
-const fileStatus = document.getElementById('fileStatus');
+/*
+ * ---------------------------------------------------------
+ * ELEMENTS
+ * ---------------------------------------------------------
+ */
 
-const torrentList = document.getElementById('torrentList');
+const magnetInput =
+  document.getElementById(
+    'magnetInput'
+  );
 
-function setStatus(el, message, isError) {
-  el.textContent = message;
-  el.className = 'status ' + (isError ? 'err' : 'ok');
+const addMagnetBtn =
+  document.getElementById(
+    'addMagnetBtn'
+  );
+
+const magnetStatus =
+  document.getElementById(
+    'magnetStatus'
+  );
+
+const fileInput =
+  document.getElementById(
+    'fileInput'
+  );
+
+const addFileBtn =
+  document.getElementById(
+    'addFileBtn'
+  );
+
+const fileStatus =
+  document.getElementById(
+    'fileStatus'
+  );
+
+const torrentList =
+  document.getElementById(
+    'torrentList'
+  );
+
+const fileTree =
+  document.getElementById(
+    'fileTree'
+  );
+
+const refreshFilesBtn =
+  document.getElementById(
+    'refreshFilesBtn'
+  );
+
+const downloadInfo =
+  document.getElementById(
+    'downloadInfo'
+  );
+
+const downloadTitle =
+  document.getElementById(
+    'downloadTitle'
+  );
+
+const downloadProgressText =
+  document.getElementById(
+    'downloadProgressText'
+  );
+
+const downloadSpeedText =
+  document.getElementById(
+    'downloadSpeedText'
+  );
+
+const downloadEtaText =
+  document.getElementById(
+    'downloadEtaText'
+  );
+
+const downloadProgressFill =
+  document.getElementById(
+    'downloadProgressFill'
+  );
+
+
+/*
+ * ---------------------------------------------------------
+ * STATUS
+ * ---------------------------------------------------------
+ */
+
+function setStatus(
+  element,
+  message,
+  isError
+) {
+  element.textContent =
+    message;
+
+  element.className =
+    'status ' +
+    (isError ? 'err' : 'ok');
 }
 
-addMagnetBtn.addEventListener('click', async () => {
-  const magnet = magnetInput.value.trim();
-  if (!magnet) return setStatus(magnetStatus, 'Please paste a magnet link.', true);
-  setStatus(magnetStatus, 'Adding...', false);
-  try {
-    const res = await fetch('/api/add-magnet', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ magnet }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to add magnet.');
-    setStatus(magnetStatus, 'Added! Downloading...', false);
-    magnetInput.value = '';
-    refresh();
-  } catch (err) {
-    setStatus(magnetStatus, err.message, true);
-  }
-});
 
-addFileBtn.addEventListener('click', async () => {
-  const file = fileInput.files[0];
-  if (!file) return setStatus(fileStatus, 'Please choose a .torrent file.', true);
-  setStatus(fileStatus, 'Uploading...', false);
-  try {
-    const formData = new FormData();
-    formData.append('torrentFile', file);
-    const res = await fetch('/api/add-file', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to add torrent file.');
-    setStatus(fileStatus, 'Added! Downloading...', false);
-    fileInput.value = '';
-    refresh();
-  } catch (err) {
-    setStatus(fileStatus, err.message, true);
+/*
+ * ---------------------------------------------------------
+ * ADD MAGNET
+ * ---------------------------------------------------------
+ */
+
+addMagnetBtn.addEventListener(
+  'click',
+  async () => {
+
+    const magnet =
+      magnetInput.value.trim();
+
+    if (!magnet) {
+
+      return setStatus(
+        magnetStatus,
+        'Please paste a magnet link.',
+        true
+      );
+    }
+
+    addMagnetBtn.disabled =
+      true;
+
+    setStatus(
+      magnetStatus,
+      'Adding...',
+      false
+    );
+
+    try {
+
+      const response =
+        await fetch(
+          '/api/add-magnet',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+
+            body:
+              JSON.stringify({
+                magnet,
+              }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+          'Failed to add magnet.'
+        );
+      }
+
+      setStatus(
+        magnetStatus,
+        'Added! Downloading...',
+        false
+      );
+
+      magnetInput.value = '';
+
+      refresh();
+
+      refreshFiles();
+
+    } catch (error) {
+
+      setStatus(
+        magnetStatus,
+        error.message,
+        true
+      );
+
+    } finally {
+
+      addMagnetBtn.disabled =
+        false;
+    }
   }
-});
+);
+
+
+/*
+ * ---------------------------------------------------------
+ * ADD TORRENT FILE
+ * ---------------------------------------------------------
+ */
+
+addFileBtn.addEventListener(
+  'click',
+  async () => {
+
+    const file =
+      fileInput.files[0];
+
+    if (!file) {
+
+      return setStatus(
+        fileStatus,
+        'Please choose a .torrent file.',
+        true
+      );
+    }
+
+    addFileBtn.disabled =
+      true;
+
+    setStatus(
+      fileStatus,
+      'Uploading...',
+      false
+    );
+
+    try {
+
+      const formData =
+        new FormData();
+
+      formData.append(
+        'torrentFile',
+        file
+      );
+
+      const response =
+        await fetch(
+          '/api/add-file',
+          {
+            method: 'POST',
+            body: formData,
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+          'Failed to add torrent file.'
+        );
+      }
+
+      setStatus(
+        fileStatus,
+        'Added! Downloading...',
+        false
+      );
+
+      fileInput.value = '';
+
+      refresh();
+
+    } catch (error) {
+
+      setStatus(
+        fileStatus,
+        error.message,
+        true
+      );
+
+    } finally {
+
+      addFileBtn.disabled =
+        false;
+    }
+  }
+);
+
+
+/*
+ * ---------------------------------------------------------
+ * FORMAT BYTES
+ * ---------------------------------------------------------
+ */
 
 function formatBytes(bytes) {
-  if (!bytes) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let i = 0;
-  let n = bytes;
-  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
-  return n.toFixed(1) + ' ' + units[i];
+
+  if (
+    !Number.isFinite(bytes) ||
+    bytes <= 0
+  ) {
+    return '0 B';
+  }
+
+  const units = [
+    'B',
+    'KB',
+    'MB',
+    'GB',
+    'TB',
+  ];
+
+  let index = 0;
+
+  let value = bytes;
+
+  while (
+    value >= 1024 &&
+    index < units.length - 1
+  ) {
+    value /= 1024;
+    index++;
+  }
+
+  return (
+    value.toFixed(
+      index === 0 ? 0 : 1
+    ) +
+    ' ' +
+    units[index]
+  );
 }
 
-async function removeTorrent(infoHash) {
-  await fetch('/api/torrents/' + infoHash, { method: 'DELETE' });
-  refresh();
+
+/*
+ * ---------------------------------------------------------
+ * FORMAT SPEED
+ * ---------------------------------------------------------
+ */
+
+function formatSpeed(bytesPerSecond) {
+
+  return (
+    formatBytes(bytesPerSecond) +
+    '/s'
+  );
 }
+
+
+/*
+ * ---------------------------------------------------------
+ * REMOVE TORRENT
+ * ---------------------------------------------------------
+ */
+
+async function removeTorrent(
+  infoHash
+) {
+
+  try {
+
+    await fetch(
+      '/api/torrents/' +
+      encodeURIComponent(infoHash),
+      {
+        method: 'DELETE',
+      }
+    );
+
+    refresh();
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+  }
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * REFRESH TORRENTS
+ * ---------------------------------------------------------
+ */
 
 async function refresh() {
+
   try {
-    const res = await fetch('/api/torrents');
-    const items = await res.json();
+
+    const response =
+      await fetch(
+        '/api/torrents',
+        {
+          cache: 'no-store',
+        }
+      );
+
+    const items =
+      await response.json();
 
     if (!items.length) {
-      torrentList.innerHTML = '<div class="empty">No downloads yet.</div>';
+
+      torrentList.innerHTML =
+        '<div class="empty">' +
+        'No downloads yet.' +
+        '</div>';
+
       return;
     }
 
-    torrentList.innerHTML = items.map((t) => `
-      <div class="torrent-item">
-        <div class="name">${t.name || '(fetching metadata...)'}</div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${t.progress}%"></div></div>
-        <div class="meta">
-          <span>${t.progress}% — ${formatBytes(t.downloaded)} / ${formatBytes(t.total)}</span>
-          <span>${t.done ? '✅ Done' : (t.error ? '❌ Error' : '⬇️ Downloading')}</span>
-        </div>
-        ${t.error ? `<div class="status err">${t.error}</div>` : ''}
-        ${t.done && t.files.length ? `
-          <div class="files">
-            Files:
-            <ul>${t.files.map(f => `<li>${f.path} (${formatBytes(f.length)})</li>`).join('')}</ul>
-          </div>` : ''}
-        <div style="margin-top:0.6rem; text-align:right;">
-          <button class="remove-btn" onclick="removeTorrent('${t.id}')">Remove</button>
-        </div>
-      </div>
-    `).join('');
-  } catch (err) {
-    console.error(err);
+    torrentList.innerHTML =
+      items
+        .map(
+          (torrent) => {
+
+            const name =
+              escapeHtml(
+                torrent.name ||
+                '(fetching metadata...)'
+              );
+
+            const error =
+              torrent.error
+                ? escapeHtml(
+                    torrent.error
+                  )
+                : '';
+
+            const files =
+              torrent.files || [];
+
+            return `
+              <div class="torrent-item">
+
+                <div class="name">
+                  ${name}
+                </div>
+
+                <div class="progress-bar">
+
+                  <div
+                    class="progress-fill"
+                    style="
+                      width:${torrent.progress}%
+                    "
+                  ></div>
+
+                </div>
+
+                <div class="meta">
+
+                  <span>
+                    ${torrent.progress}%
+                    —
+                    ${formatBytes(
+                      torrent.downloaded
+                    )}
+                    /
+                    ${formatBytes(
+                      torrent.total
+                    )}
+                  </span>
+
+                  <span>
+                    ${
+                      torrent.done
+                        ? '✅ Done'
+                        : (
+                            torrent.error
+                              ? '❌ Error'
+                              : '⬇️ Downloading'
+                          )
+                    }
+                  </span>
+
+                </div>
+
+                ${
+                  error
+                    ? `
+                      <div class="status err">
+                        ${error}
+                      </div>
+                    `
+                    : ''
+                }
+
+                ${
+                  torrent.done &&
+                  files.length
+                    ? `
+                      <div class="files">
+
+                        Files:
+
+                        <ul>
+
+                          ${files
+                            .map(
+                              (file) =>
+                                `
+                                <li>
+                                  ${escapeHtml(
+                                    file.path
+                                  )}
+                                  (
+                                  ${formatBytes(
+                                    file.length
+                                  )}
+                                  )
+                                </li>
+                                `
+                            )
+                            .join('')}
+
+                        </ul>
+
+                      </div>
+                    `
+                    : ''
+                }
+
+                <div
+                  style="
+                    margin-top:0.6rem;
+                    text-align:right;
+                  "
+                >
+
+                  <button
+                    class="remove-btn"
+                    onclick="
+                      removeTorrent(
+                        '${escapeJs(
+                          torrent.id
+                        )}'
+                      )
+                    "
+                  >
+                    Remove
+                  </button>
+
+                </div>
+
+              </div>
+            `;
+          }
+        )
+        .join('');
+
+  } catch (error) {
+
+    console.error(
+      'Torrent refresh error:',
+      error
+    );
   }
 }
 
-refresh();
-setInterval(refresh, 2000);
 
-// --- Download folder file browser ---
-const fileTree = document.getElementById('fileTree');
-const refreshFilesBtn = document.getElementById('refreshFilesBtn');
+/*
+ * ---------------------------------------------------------
+ * ESCAPE HTML
+ * ---------------------------------------------------------
+ */
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(
+      /&/g,
+      '&amp;'
+    )
+    .replace(
+      /</g,
+      '&lt;'
+    )
+    .replace(
+      />/g,
+      '&gt;'
+    )
+    .replace(
+      /"/g,
+      '&quot;'
+    )
+    .replace(
+      /'/g,
+      '&#039;'
+    );
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * ESCAPE JS
+ * ---------------------------------------------------------
+ */
+
+function escapeJs(value) {
+
+  return String(value)
+    .replace(
+      /\\/g,
+      '\\\\'
+    )
+    .replace(
+      /'/g,
+      "\\'"
+    )
+    .replace(
+      /\n/g,
+      '\\n'
+    )
+    .replace(
+      /\r/g,
+      '\\r'
+    );
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * HTTP DOWNLOAD
+ * ---------------------------------------------------------
+ *
+ * Native browser downloads are normally the fastest and
+ * most reliable option.
+ *
+ * We keep the actual large-file transfer on the server's
+ * HTTP stream rather than loading the entire file into
+ * browser JavaScript memory.
+ */
+
+function startDownload(
+  url,
+  filename
+) {
+
+  /*
+   * Let the browser perform the actual download.
+   *
+   * This is preferable to:
+   *
+   * fetch(url)
+   * -> arrayBuffer()
+   * -> Blob
+   *
+   * because Blob downloads can consume huge amounts
+   * of browser RAM for large torrent files.
+   */
+
+  const link =
+    document.createElement(
+      'a'
+    );
+
+  link.href = url;
+
+  link.download =
+    filename || '';
+
+  link.rel =
+    'noopener';
+
+  document.body.appendChild(
+    link
+  );
+
+  link.click();
+
+  link.remove();
+
+  showDownloadStarted(
+    filename
+  );
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * DOWNLOAD START UI
+ * ---------------------------------------------------------
+ */
+
+function showDownloadStarted(
+  filename
+) {
+
+  downloadInfo.classList.add(
+    'active'
+  );
+
+  downloadTitle.textContent =
+    filename ||
+    'Download started';
+
+  downloadProgressText.textContent =
+    'Browser download started';
+
+  downloadSpeedText.textContent =
+    'Server streaming';
+
+  downloadEtaText.textContent =
+    'HTTP Range enabled';
+
+  downloadProgressFill.style.width =
+    '100%';
+
+  /*
+   * Hide status after a short time.
+   */
+  setTimeout(
+    () => {
+      downloadInfo.classList.remove(
+        'active'
+      );
+    },
+    5000
+  );
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * FILE TREE
+ * ---------------------------------------------------------
+ */
 
 function renderNode(node) {
-  const downloadUrl = '/api/download/' + node.relPath.split('/').map(encodeURIComponent).join('/');
-  if (node.type === 'file') {
+
+  const downloadUrl =
+    '/api/download/' +
+    node.relPath
+      .split('/')
+      .map(
+        encodeURIComponent
+      )
+      .join('/');
+
+  const safeName =
+    escapeHtml(
+      node.name
+    );
+
+  /*
+   * FILE
+   */
+
+  if (
+    node.type === 'file'
+  ) {
+
     return `
       <div class="tree-node">
+
         <div class="tree-row">
+
           <div class="tree-label">
-            <span class="icon">📄</span>
-            <span class="fname">${node.name}</span>
+
+            <span class="icon">
+              📄
+            </span>
+
+            <span class="fname">
+              ${safeName}
+            </span>
+
           </div>
-          <div style="display:flex; align-items:center;">
-            <span class="tree-size">${formatBytes(node.size)}</span>
-            <a class="download-link" href="${downloadUrl}" download>Download</a>
+
+          <div
+            style="
+              display:flex;
+              align-items:center;
+            "
+          >
+
+            <span class="tree-size">
+              ${formatBytes(
+                node.size
+              )}
+            </span>
+
+            <a
+              class="download-link"
+              href="${downloadUrl}"
+              download
+              onclick="
+                showDownloadStarted(
+                  '${escapeJs(
+                    node.name
+                  )}'
+                )
+              "
+            >
+              Download
+            </a>
+
           </div>
+
         </div>
-      </div>`;
+
+      </div>
+    `;
   }
-  // folder
-  const childrenHtml = node.children.map(renderNode).join('');
+
+  /*
+   * FOLDER
+   */
+
+  const childrenHtml =
+    (node.children || [])
+      .map(
+        renderNode
+      )
+      .join('');
+
   return `
     <div class="tree-node">
+
       <div class="tree-row">
+
         <div class="tree-label">
-          <span class="icon">📁</span>
-          <span class="fname">${node.name}</span>
+
+          <span class="icon">
+            📁
+          </span>
+
+          <span class="fname">
+            ${safeName}
+          </span>
+
         </div>
-        <div style="display:flex; align-items:center;">
-          <span class="tree-size">${formatBytes(node.size)}</span>
-          <a class="download-link" href="${downloadUrl}" download>Download .zip</a>
+
+        <div
+          style="
+            display:flex;
+            align-items:center;
+          "
+        >
+
+          <span class="tree-size">
+            ${formatBytes(
+              node.size
+            )}
+          </span>
+
+          <a
+            class="download-link"
+            href="${downloadUrl}"
+            download
+            onclick="
+              showDownloadStarted(
+                '${escapeJs(
+                  node.name +
+                  '.zip'
+                )}'
+              )
+            "
+          >
+            Download .zip
+          </a>
+
         </div>
+
       </div>
-      <div class="tree-children">${childrenHtml}</div>
-    </div>`;
+
+      <div class="tree-children">
+        ${childrenHtml}
+      </div>
+
+    </div>
+  `;
 }
 
+
+/*
+ * ---------------------------------------------------------
+ * REFRESH FILES
+ * ---------------------------------------------------------
+ */
+
 async function refreshFiles() {
+
   try {
-    const res = await fetch('/api/files');
-    const tree = await res.json();
+
+    const response =
+      await fetch(
+        '/api/files',
+        {
+          cache: 'no-store',
+        }
+      );
+
+    const tree =
+      await response.json();
+
     if (!tree.length) {
-      fileTree.innerHTML = '<div class="empty">Download folder is empty.</div>';
+
+      fileTree.innerHTML =
+        '<div class="empty">' +
+        'Download folder is empty.' +
+        '</div>';
+
       return;
     }
-    fileTree.innerHTML = tree.map(renderNode).join('');
-  } catch (err) {
-    console.error(err);
+
+    fileTree.innerHTML =
+      tree
+        .map(
+          renderNode
+        )
+        .join('');
+
+  } catch (error) {
+
+    console.error(
+      'File refresh error:',
+      error
+    );
+
+    fileTree.innerHTML =
+      '<div class="status err">' +
+      'Unable to load files.' +
+      '</div>';
   }
 }
 
-refreshFilesBtn.addEventListener('click', refreshFiles);
+
+/*
+ * ---------------------------------------------------------
+ * BUTTONS
+ * ---------------------------------------------------------
+ */
+
+refreshFilesBtn.addEventListener(
+  'click',
+  refreshFiles
+);
+
+
+/*
+ * ---------------------------------------------------------
+ * INITIAL LOAD
+ * ---------------------------------------------------------
+ */
+
+refresh();
+
 refreshFiles();
-setInterval(refreshFiles, 5000);
+
+
+/*
+ * Torrent progress:
+ * every 2 seconds
+ */
+
+setInterval(
+  refresh,
+  2000
+);
+
+
+/*
+ * File browser:
+ * every 5 seconds
+ */
+
+setInterval(
+  refreshFiles,
+  5000
+);
+
+
+/*
+ * Enter key for magnet input.
+ */
+
+magnetInput.addEventListener(
+  'keydown',
+  (event) => {
+
+    if (
+      event.key === 'Enter'
+    ) {
+      addMagnetBtn.click();
+    }
+
+  }
+);
+
 </script>
+
 </body>
 </html>
