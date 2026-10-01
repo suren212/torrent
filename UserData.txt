@@ -1,0 +1,222 @@
+#!/bin/bash
+
+set -e
+
+# ============================================================
+# Torrent Downloader - EC2 Automatic Setup
+# Repository:
+# https://github.com/suren212/torrent.git
+# ============================================================
+
+LOG_FILE="/var/log/torrent-setup.log"
+
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+echo "=========================================="
+echo " Torrent Downloader EC2 Setup"
+echo " Started: $(date)"
+echo "=========================================="
+
+# ------------------------------------------------------------
+# 1. SYSTEM UPDATE
+# ------------------------------------------------------------
+
+echo "[1/10] Updating system..."
+
+apt-get update -y
+apt-get upgrade -y
+
+# ------------------------------------------------------------
+# 2. INSTALL REQUIRED PACKAGES
+# ------------------------------------------------------------
+
+echo "[2/10] Installing required packages..."
+
+apt-get install -y \
+    curl \
+    git \
+    ca-certificates \
+    build-essential \
+    ufw
+
+# ------------------------------------------------------------
+# 3. INSTALL NODE.JS 20 LTS
+# ------------------------------------------------------------
+
+echo "[3/10] Installing Node.js..."
+
+if ! command -v node >/dev/null 2>&1; then
+
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+
+    apt-get install -y nodejs
+
+fi
+
+echo "Node version:"
+node --version
+
+echo "NPM version:"
+npm --version
+
+# ------------------------------------------------------------
+# 4. CREATE APPLICATION DIRECTORY
+# ------------------------------------------------------------
+
+echo "[4/10] Creating application directory..."
+
+APP_DIR="/opt/torrent"
+
+mkdir -p "$APP_DIR"
+
+# ------------------------------------------------------------
+# 5. CLONE / UPDATE GITHUB REPOSITORY
+# ------------------------------------------------------------
+
+echo "[5/10] Downloading application..."
+
+if [ -d "$APP_DIR/.git" ]; then
+
+    cd "$APP_DIR"
+
+    git fetch --all
+
+    git reset --hard origin/main
+
+else
+
+    rm -rf "$APP_DIR"
+
+    git clone \
+        https://github.com/suren212/torrent.git \
+        "$APP_DIR"
+
+fi
+
+cd "$APP_DIR"
+
+# ------------------------------------------------------------
+# 6. CREATE REQUIRED DIRECTORIES
+# ------------------------------------------------------------
+
+echo "[6/10] Creating Download directories..."
+
+mkdir -p "$APP_DIR/Download"
+mkdir -p "$APP_DIR/tmp_uploads"
+
+# ------------------------------------------------------------
+# 7. INSTALL NODE DEPENDENCIES
+# ------------------------------------------------------------
+
+echo "[7/10] Installing Node.js dependencies..."
+
+npm install --production
+
+# ------------------------------------------------------------
+# 8. FIREWALL
+# ------------------------------------------------------------
+
+echo "[8/10] Configuring firewall..."
+
+ufw --force reset
+
+ufw default deny incoming
+ufw default allow outgoing
+
+# SSH
+ufw allow 22/tcp
+
+# Web application
+ufw allow 80/tcp
+
+# Torrent peer traffic
+ufw allow 55000/tcp
+ufw allow 55000/udp
+
+# DHT
+ufw allow 55001/udp
+
+ufw --force enable
+
+# ------------------------------------------------------------
+# 9. CREATE SYSTEMD SERVICE
+# ------------------------------------------------------------
+
+echo "[9/10] Creating systemd service..."
+
+cat > /etc/systemd/system/torrent.service <<EOF
+[Unit]
+Description=Torrent Download Web Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+WorkingDirectory=$APP_DIR
+
+ExecStart=/usr/bin/node $APP_DIR/server.js
+
+Restart=always
+RestartSec=5
+
+Environment=NODE_ENV=production
+Environment=PORT=80
+Environment=TORRENT_PORT=55000
+
+# Give the application a larger file descriptor limit
+LimitNOFILE=65535
+
+# Security
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# ------------------------------------------------------------
+# 10. ENABLE AND START APPLICATION
+# ------------------------------------------------------------
+
+echo "[10/10] Starting Torrent Downloader..."
+
+systemctl daemon-reload
+
+systemctl enable torrent.service
+
+systemctl restart torrent.service
+
+# ------------------------------------------------------------
+# WAIT FOR SERVER
+# ------------------------------------------------------------
+
+sleep 5
+
+echo ""
+echo "=========================================="
+echo " Torrent Downloader Setup Complete"
+echo "=========================================="
+
+echo ""
+echo "Service status:"
+systemctl --no-pager status torrent.service || true
+
+echo ""
+echo "Node:"
+node --version
+
+echo ""
+echo "Application directory:"
+echo "$APP_DIR"
+
+echo ""
+echo "Download directory:"
+echo "$APP_DIR/Download"
+
+echo ""
+echo "Listening ports:"
+ss -lntup | grep -E ':80|:55000|:55001' || true
+
+echo ""
+echo "Setup completed: $(date)"
+echo "=========================================="
